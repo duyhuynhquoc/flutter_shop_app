@@ -33,6 +33,21 @@ class ProductItem extends StatelessWidget {
             trailing: IconButton(
               onPressed: () {
                 cart.addItem(product);
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('产品已经加进购物车去！'),
+                    duration: const Duration(seconds: 2),
+                    action: SnackBarAction(
+                      label: '撤销',
+                      onPressed: () {
+                        if (product.id != null) {
+                          cart.decreaseItemQuantity(product.id.toString());
+                        }
+                      },
+                    ),
+                  ),
+                );
               },
               icon: const Icon(Icons.shopping_cart),
               color: Theme.of(context).colorScheme.secondary,
