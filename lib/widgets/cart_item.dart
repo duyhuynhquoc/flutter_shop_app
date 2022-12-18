@@ -43,7 +43,7 @@ class CartItem extends StatelessWidget {
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('你确定吗？'),
-            content: const Text('你要消除这个产品从购物车消除吗？'),
+            content: const Text('你要删除这个产品从购物车吗？'),
             actions: [
               TextButton(
                 onPressed: (() {

@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (ctx) => Orders()),
       ],
       child: MaterialApp(
-        title: '店铺',
+        title: '阿里哈哈',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           primaryColor: Colors.purple,

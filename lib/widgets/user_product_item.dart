@@ -1,6 +1,9 @@
+// ignore_for_file: use_key_in_widget_constructors
+
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/container.dart';
 import 'package:flutter/src/widgets/framework.dart';
+import 'package:flutter_shop_app/models/http_exception.dart';
 import 'package:flutter_shop_app/providers/product.dart';
 import 'package:flutter_shop_app/providers/products.dart';
 import 'package:flutter_shop_app/screens/edit_product_screen.dart';
@@ -13,6 +16,8 @@ class UserProductItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
       leading: ClipRRect(
@@ -32,21 +37,58 @@ class UserProductItem extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
+              icon: const Icon(Icons.edit),
               onPressed: () {
                 Navigator.of(context).pushNamed(EditProductScreen.routeName,
                     arguments: product.id);
               },
-              icon: const Icon(Icons.edit),
               color: Colors.amber,
             ),
             IconButton(
+              icon: const Icon(Icons.delete),
               onPressed: () {
                 if (product.id != null) {
-                  Provider.of<Products>(context, listen: false)
-                      .deleteProduct(product.id.toString());
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('你确定吗？'),
+                      content: const Text('你要删除这个产品吗？'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                          },
+                          child: const Text('取消'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            try {
+                              await Provider.of<Products>(context,
+                                      listen: false)
+                                  .deleteProduct(product.id.toString());
+
+                              scaffoldMessenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('产品已删除。'),
+                                ),
+                              );
+                            } catch (e) {
+                              scaffoldMessenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('删除失败。'),
+                                ),
+                              );
+                            } finally {
+                              Navigator.of(ctx).pop();
+                            }
+                          },
+                          child: const Text('同意'),
+                        ),
+                      ],
+                    ),
+                  );
                 }
               },
-              icon: const Icon(Icons.delete),
               color: Colors.red,
             )
           ],

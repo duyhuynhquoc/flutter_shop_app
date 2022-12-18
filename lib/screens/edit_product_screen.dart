@@ -1,4 +1,4 @@
-// ignore_for_file: use_key_in_widget_constructors
+// ignore_for_file: use_key_in_widget_constructors, prefer_void_to_null, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/container.dart';
@@ -22,6 +22,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
   final _imageUrlController = TextEditingController();
 
   final _form = GlobalKey<FormState>();
+
+  bool _isLoading = false;
 
   Product _editedProduct = Product(
     id: null,
@@ -84,7 +86,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     }
   }
 
-  void _saveForm() {
+  void _saveForm() async {
     final isValid = _form.currentState?.validate();
     if (isValid == null || !isValid) {
       return;
@@ -92,14 +94,40 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     _form.currentState?.save();
 
+    setState(() {
+      _isLoading = true;
+    });
+
     if (_editedProduct.id != null) {
-      Provider.of<Products>(context, listen: false)
+      await Provider.of<Products>(context, listen: false)
           .updateProduct(_editedProduct);
-      Navigator.of(context).pop();
     } else {
-      Provider.of<Products>(context, listen: false).addProduct(_editedProduct);
-      Navigator.of(context).pop();
+      try {
+        await Provider.of<Products>(context, listen: false)
+            .addProduct(_editedProduct);
+      } catch (e) {
+        return showDialog<Null>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            content: const Text('抱歉，出错了，再试试！'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+                child: const Text('我知道了'),
+              ),
+            ],
+          ),
+        );
+      }
     }
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Navigator.of(context).pop();
   }
 
   @override
@@ -114,152 +142,65 @@ class _EditProductScreenState extends State<EditProductScreen> {
           )
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _form,
-          child: ListView(
-            children: [
-              TextFormField(
-                decoration: const InputDecoration(labelText: '名称'),
-                initialValue: _initValue['title'],
-                textInputAction: TextInputAction.next,
-                onFieldSubmitted: (_) {
-                  FocusScope.of(context).requestFocus(_priceFocusNode);
-                },
-                validator: (value) {
-                  if (value != null) {
-                    if (value.isEmpty) {
-                      return '请输入产品的名称。';
-                    }
-                  }
-
-                  return null;
-                },
-                onSaved: (newValue) {
-                  if (newValue != null) {
-                    _editedProduct = Product(
-                      id: _editedProduct.id,
-                      title: newValue,
-                      description: _editedProduct.description,
-                      price: _editedProduct.price,
-                      imageUrl: _editedProduct.imageUrl,
-                      isFavorite: _editedProduct.isFavorite,
-                    );
-                  }
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: '价钱'),
-                initialValue: _initValue['price'],
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.next,
-                focusNode: _priceFocusNode,
-                validator: (value) {
-                  if (value != null) {
-                    if (value.isEmpty) {
-                      return '请输入产品的价钱。';
-                    }
-                    if (double.tryParse(value) == null) {
-                      return '请输入合格的价钱。';
-                    }
-                    if (double.parse(value) <= 0) {
-                      return '请输入比0大的价钱。';
-                    }
-                  }
-
-                  return null;
-                },
-                onSaved: (newValue) {
-                  if (newValue != null) {
-                    _editedProduct = Product(
-                      id: _editedProduct.id,
-                      title: _editedProduct.title,
-                      description: _editedProduct.description,
-                      price: double.parse(newValue),
-                      imageUrl: _editedProduct.imageUrl,
-                      isFavorite: _editedProduct.isFavorite,
-                    );
-                  }
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: '描述'),
-                initialValue: _initValue['description'],
-                keyboardType: TextInputType.multiline,
-                maxLines: 3,
-                focusNode: _descriptionFocusNode,
-                validator: (value) {
-                  if (value != null) {
-                    if (value.isEmpty) {
-                      return '请输入产品的描述。';
-                    }
-                    if (value.length < 10) {
-                      return '描述至少要十字符。';
-                    }
-                  }
-
-                  return null;
-                },
-                onSaved: (newValue) {
-                  if (newValue != null) {
-                    _editedProduct = Product(
-                      id: _editedProduct.id,
-                      title: _editedProduct.title,
-                      description: newValue,
-                      price: _editedProduct.price,
-                      imageUrl: _editedProduct.imageUrl,
-                      isFavorite: _editedProduct.isFavorite,
-                    );
-                  }
-                },
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    margin: const EdgeInsets.only(
-                      top: 8,
-                      right: 8,
-                    ),
-                    decoration: BoxDecoration(
-                        border: Border.all(
-                      width: 1,
-                      color: Colors.grey,
-                    )),
-                    child: _imageUrlController.text.isEmpty
-                        ? const Text('请输入链接！')
-                        : FittedBox(
-                            child: Image.network(
-                              _imageUrlController.text,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                  ),
-                  Expanded(
-                    child: TextFormField(
-                      decoration: const InputDecoration(labelText: '图像链接'),
-                      keyboardType: TextInputType.url,
-                      textInputAction: TextInputAction.done,
-                      focusNode: _imageFocusNode,
-                      controller: _imageUrlController,
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _form,
+                child: ListView(
+                  children: [
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: '名称'),
+                      initialValue: _initValue['title'],
+                      textInputAction: TextInputAction.next,
+                      onFieldSubmitted: (_) {
+                        FocusScope.of(context).requestFocus(_priceFocusNode);
+                      },
                       validator: (value) {
                         if (value != null) {
                           if (value.isEmpty) {
-                            return '请输入产品的图像链接。';
-                          }
-                          if (!(Uri.tryParse(value)?.hasAbsolutePath ??
-                              false)) {
-                            return '请输入合格的图像链接。';
+                            return '请输入产品的名称。';
                           }
                         }
 
                         return null;
                       },
-                      onFieldSubmitted: (_) {
-                        _saveForm();
+                      onSaved: (newValue) {
+                        if (newValue != null) {
+                          _editedProduct = Product(
+                            id: _editedProduct.id,
+                            title: newValue,
+                            description: _editedProduct.description,
+                            price: _editedProduct.price,
+                            imageUrl: _editedProduct.imageUrl,
+                            isFavorite: _editedProduct.isFavorite,
+                          );
+                        }
+                      },
+                    ),
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: '价格'),
+                      initialValue: _initValue['price'],
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.next,
+                      focusNode: _priceFocusNode,
+                      validator: (value) {
+                        if (value != null) {
+                          if (value.isEmpty) {
+                            return '请输入产品的价格。';
+                          }
+                          if (double.tryParse(value) == null) {
+                            return '请输入合格的价格。';
+                          }
+                          if (double.parse(value) <= 0) {
+                            return '请输入比0大的价格。';
+                          }
+                        }
+
+                        return null;
                       },
                       onSaved: (newValue) {
                         if (newValue != null) {
@@ -267,20 +208,112 @@ class _EditProductScreenState extends State<EditProductScreen> {
                             id: _editedProduct.id,
                             title: _editedProduct.title,
                             description: _editedProduct.description,
-                            price: _editedProduct.price,
-                            imageUrl: newValue,
+                            price: double.parse(newValue),
+                            imageUrl: _editedProduct.imageUrl,
                             isFavorite: _editedProduct.isFavorite,
                           );
                         }
                       },
                     ),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ),
-      ),
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: '描述'),
+                      initialValue: _initValue['description'],
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 3,
+                      focusNode: _descriptionFocusNode,
+                      validator: (value) {
+                        if (value != null) {
+                          if (value.isEmpty) {
+                            return '请输入产品的描述。';
+                          }
+                          if (value.length < 10) {
+                            return '描述至少要十字符。';
+                          }
+                        }
+
+                        return null;
+                      },
+                      onSaved: (newValue) {
+                        if (newValue != null) {
+                          _editedProduct = Product(
+                            id: _editedProduct.id,
+                            title: _editedProduct.title,
+                            description: newValue,
+                            price: _editedProduct.price,
+                            imageUrl: _editedProduct.imageUrl,
+                            isFavorite: _editedProduct.isFavorite,
+                          );
+                        }
+                      },
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          margin: const EdgeInsets.only(
+                            top: 8,
+                            right: 8,
+                          ),
+                          decoration: BoxDecoration(
+                              border: Border.all(
+                            width: 1,
+                            color: Colors.grey,
+                          )),
+                          child: _imageUrlController.text.isEmpty
+                              ? const Text('请输入链接！')
+                              : FittedBox(
+                                  child: Image.network(
+                                    _imageUrlController.text,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                        ),
+                        Expanded(
+                          child: TextFormField(
+                            decoration:
+                                const InputDecoration(labelText: '图像链接'),
+                            keyboardType: TextInputType.url,
+                            textInputAction: TextInputAction.done,
+                            focusNode: _imageFocusNode,
+                            controller: _imageUrlController,
+                            validator: (value) {
+                              if (value != null) {
+                                if (value.isEmpty) {
+                                  return '请输入产品的图像链接。';
+                                }
+                                if (!(Uri.tryParse(value)?.hasAbsolutePath ??
+                                    false)) {
+                                  return '请输入合格的图像链接。';
+                                }
+                              }
+
+                              return null;
+                            },
+                            onFieldSubmitted: (_) {
+                              _saveForm();
+                            },
+                            onSaved: (newValue) {
+                              if (newValue != null) {
+                                _editedProduct = Product(
+                                  id: _editedProduct.id,
+                                  title: _editedProduct.title,
+                                  description: _editedProduct.description,
+                                  price: _editedProduct.price,
+                                  imageUrl: newValue,
+                                  isFavorite: _editedProduct.isFavorite,
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
     );
   }
 }

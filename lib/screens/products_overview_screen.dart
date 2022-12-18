@@ -3,6 +3,7 @@
 import 'package:badges/badges.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_shop_app/providers/cart.dart';
+import 'package:flutter_shop_app/providers/products.dart';
 import 'package:flutter_shop_app/screens/cart_screen.dart';
 import 'package:flutter_shop_app/widgets/app_drawer.dart';
 
@@ -19,11 +20,39 @@ class ProductsOverViewScreen extends StatefulWidget {
 class _ProductsOverViewScreenState extends State<ProductsOverViewScreen> {
   FilterOption _filterOption = FilterOption.all;
 
+  bool _isInit = true;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    if (_isInit) {
+      setState(() {
+        _isLoading = true;
+      });
+      Provider.of<Products>(context).fetchProducts().then((_) {
+        setState(() {
+          _isLoading = false;
+        });
+      });
+    }
+    _isInit = false;
+    super.didChangeDependencies();
+  }
+
+  Future<void> _refreshProducts(BuildContext context) async {
+    await Provider.of<Products>(context, listen: false).fetchProducts();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("LJ店铺"),
+        title: const Text("阿里哈哈"),
         actions: <Widget>[
           PopupMenuButton(
             icon: const Icon(Icons.more_vert),
@@ -70,7 +99,15 @@ class _ProductsOverViewScreenState extends State<ProductsOverViewScreen> {
         ],
       ),
       drawer: AppDrawer(),
-      body: ProductsGrid(_filterOption),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : RefreshIndicator(
+              onRefresh: () {
+                return _refreshProducts(context);
+              },
+              child: ProductsGrid(_filterOption)),
     );
   }
 }
