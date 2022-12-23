@@ -1,6 +1,7 @@
 // ignore_for_file: use_key_in_widget_constructors, prefer_void_to_null, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/src/widgets/container.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter_shop_app/providers/product.dart';
@@ -54,8 +55,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
       if (ModalRoute.of(context)?.settings.arguments != null) {
         final productId = ModalRoute.of(context)?.settings.arguments as String;
 
-        _editedProduct =
-            Provider.of<Products>(context, listen: false).findById(productId);
+        _editedProduct = Provider.of<Products>(context, listen: false).findById(productId);
         _initValue = {
           'title': _editedProduct.title,
           'description': _editedProduct.description,
@@ -80,8 +80,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   }
 
   void _updateImageUrl() {
-    if (!_imageFocusNode.hasFocus &&
-        (Uri.tryParse(_imageUrlController.text)?.hasAbsolutePath ?? false)) {
+    if (!_imageFocusNode.hasFocus && (Uri.tryParse(_imageUrlController.text)?.hasAbsolutePath ?? false)) {
       setState(() {});
     }
   }
@@ -99,12 +98,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
     });
 
     if (_editedProduct.id != null) {
-      await Provider.of<Products>(context, listen: false)
-          .updateProduct(_editedProduct);
+      await Provider.of<Products>(context, listen: false).updateProduct(_editedProduct);
     } else {
       try {
-        await Provider.of<Products>(context, listen: false)
-            .addProduct(_editedProduct);
+        await Provider.of<Products>(context, listen: false).addProduct(_editedProduct);
       } catch (e) {
         return showDialog<Null>(
           context: context,
@@ -272,8 +269,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         ),
                         Expanded(
                           child: TextFormField(
-                            decoration:
-                                const InputDecoration(labelText: '图像链接'),
+                            decoration: const InputDecoration(labelText: '图像链接'),
                             keyboardType: TextInputType.url,
                             textInputAction: TextInputAction.done,
                             focusNode: _imageFocusNode,
@@ -283,8 +279,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                 if (value.isEmpty) {
                                   return '请输入产品的图像链接。';
                                 }
-                                if (!(Uri.tryParse(value)?.hasAbsolutePath ??
-                                    false)) {
+                                if (!(Uri.tryParse(value)?.hasAbsolutePath ?? false)) {
                                   return '请输入合格的图像链接。';
                                 }
                               }
